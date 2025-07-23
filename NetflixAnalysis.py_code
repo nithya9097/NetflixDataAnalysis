@@ -1,0 +1,118 @@
+#netflix_analysis.py
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+from collections import Counter
+
+#Load dataset
+df = pd.read_csv("netflix_titles.csv")
+
+#Data Preprocessing
+print("\n--- Dataset Info ---")
+print(df.info())
+print("\n--- Missing Values ---")
+print(df.isnull().sum())
+
+#Converting 'date_added' to datetime
+df['date_added'] = pd.to_datetime(df['date_added'].str.strip(), errors='coerce')
+
+#Create new columns
+df['year_added'] = df['date_added'].dt.year
+df['month_added'] = df['date_added'].dt.month
+
+#Fill missing values
+df['director'] = df['director'].fillna("Not Available")
+df['country'] = df['country'].fillna("Not Available")
+df['cast'] = df['cast'].fillna("Not Available")
+df['rating'] = df['rating'].fillna("Not Rated")
+
+#Exploratory Data Analysis
+#1. Movie vs TV Show Count
+plt.figure(figsize=(6,4))
+sns.countplot(data=df, x='type', palette='pastel', hue=None)
+plt.title("Movies vs TV Shows")
+plt.savefig("1_type_distribution.png")
+plt.show()
+
+#2. Content added per year
+plt.figure(figsize=(10,5))
+df['year_added'].value_counts().sort_index().plot(kind='bar', color='teal')
+plt.title("Content Added per Year")
+plt.xlabel("Year")
+plt.ylabel("Number of Titles")
+plt.grid(True)
+plt.savefig("2_year_added.png")
+plt.show()
+
+#3. Top 10 Countries
+top_countries = df['country'].value_counts().head(10)
+plt.figure(figsize=(8,5))
+top_countries.plot(kind='barh', color='skyblue')
+plt.title("Top 10 Countries with Most Content")
+plt.xlabel("Number of Titles")
+plt.savefig("3_top_countries.png")
+plt.show()
+
+#4. Ratings Distribution
+plt.figure(figsize=(8,6))
+sns.countplot(data=df, y='rating', order=df['rating'].value_counts().index[:10], palette='muted', hue=None)
+plt.title("Top 10 Ratings on Netflix")
+plt.savefig("4_rating_distribution.png")
+plt.show()
+
+#5. Top Genres
+genres = df['listed_in'].dropna().str.split(', ')
+all_genres = [genre for sublist in genres for genre in sublist]
+top_genres = pd.Series(Counter(all_genres)).nlargest(10)
+plt.figure(figsize=(10,5))
+top_genres.plot(kind='bar', color='purple')
+plt.title("Top 10 Genres")
+plt.ylabel("Frequency")
+plt.savefig("5_top_genres.png")
+plt.show()
+
+#Deep Dive: Duration & Directors
+#Clean duration (for movies only)
+movie_df = df[df['type'] == 'Movie'].copy()
+movie_df['duration'] = movie_df['duration'].str.replace(" min", "")
+#Filter only non-null duration values first
+movie_df = movie_df[movie_df['duration'].notna()]
+
+#Now safely apply isdigit
+movie_df = movie_df[movie_df['duration'].str.extract('(\d+)')[0].notna()]
+
+movie_df['duration'] = movie_df['duration'].astype(int)
+
+#Movie Duration Distribution
+plt.figure(figsize=(10,5))
+sns.histplot(movie_df['duration'], bins=30, kde=True, color='green')
+plt.title("Movie Duration Distribution")
+plt.xlabel("Duration (minutes)")
+plt.savefig("6_movie_duration.png")
+plt.show()
+
+#Top Directors
+plt.figure(figsize=(10,5))
+df['director'].value_counts().head(10).plot(kind='bar', color='orange')
+plt.title("Top 10 Directors on Netflix")
+plt.xticks(rotation=45)
+plt.ylabel("Number of Titles")
+plt.savefig("7_top_directors.png")
+plt.show()
+
+#Optional: Plotly Interactive Chart
+fig = px.bar(df['rating'].value_counts().head(10),
+             title='Top 10 Ratings',
+             labels={'value':'Count', 'index':'Rating'})
+fig.write_html("8_plotly_ratings.html")  # Saves interactive chart as HTML
+fig.show()
+
+#Summary
+print("\n--- Summary of Insights ---")
+print("1. Netflix has more Movies than TV Shows.")
+print("2. Most content was added between 2018 to 2021.")
+print("3. Top countries with content are: US, India, UK.")
+print("4. Common ratings: TV-MA, TV-14, R.")
+print("5. Drama, International TV Shows, and Comedies dominate genres.")
