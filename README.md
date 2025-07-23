@@ -26,6 +26,3 @@ All plots are saved as PNG and an interactive HTML chart is included.
 ## 🚀 How to Run
 ```bash
 python netflix_analysis.py
-
-#Output Visualization
-<img width="602" height="416" alt="image" src="https://github.com/user-attachments/assets/0a0fa87e-5de7-41f7-8481-5995d0eed41c" />
